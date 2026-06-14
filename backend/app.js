@@ -9,7 +9,7 @@ const app = exp();
 
 // CORS
 app.use(cors({
-    origin: "http://localhost:5173",
+    origin: process.env.CLIENT_URL || "http://localhost:5173",
     credentials: true
 }));
 
@@ -34,12 +34,26 @@ app.use('/api/attempts', attemptRoutes);
 app.use('/api/violations', violationRoutes);
 app.use('/api/analytics', analyticsRoutes);
 
-// 404
-app.use((req, res) => {
-    res.status(404).json({
-        message: "Route not found"
+// 404 and Frontend static serving
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+if (process.env.NODE_ENV === "production") {
+    app.use(exp.static(path.join(__dirname, "../frontend/dist")));
+
+    app.get("*", (req, res) => {
+        res.sendFile(path.resolve(__dirname, "../frontend/dist", "index.html"));
     });
-});
+} else {
+    app.use((req, res) => {
+        res.status(404).json({
+            message: "Route not found"
+        });
+    });
+}
 
 
 // GLOBAL ERROR HANDLER
